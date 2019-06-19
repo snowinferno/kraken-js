@@ -27,6 +27,15 @@ function noop(obj, cb) {
     cb(null, obj);
 }
 
+let warned = false;
+const printDeprecation = (parent) => {
+    if (!warned && parent.listenerCount('start') > 0) {
+        warned = true;
+        console.error(`[KrakenjsDeprecationWarning]: app.on('start' ,fn) ` +
+            `is deprecated. Please use app.on('bootstrap', fn) instead.`);
+    }
+}
+
 module.exports = function (options) {
     var app;
 
@@ -55,7 +64,12 @@ module.exports = function (options) {
         // moved to `options` for use later.
         options.mountpath = app.mountpath;
 
-        start = parent.emit.bind(parent, 'start');
+        start = (conf) => {
+            parent.emit('bootstrap', conf);
+
+            printDeprecation(parent);
+            parent.emit('start', conf);
+        }
         error = parent.emit.bind(parent, 'error');
 
         // Kick off server and add middleware which will block until

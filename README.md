@@ -401,10 +401,10 @@ Kraken uses [lusca](https://github.com/paypal/lusca) to secure your applications
 
 Kraken adds support for additional events to your express app instance:
 
-* `start` - the application has safely started and is ready to accept requests
+* `bootstrap` - the application has been bootstrapped, all configuration has been applied
+* `start` - same as `bootstrap` (deprecated: use `bootstrap` instead)
 * `shutdown` - the application is shutting down, no longer accepting requests
 * `stop` - the http server is no longer connected or the shutdown timeout has expired
-
 
 
 ### Configuration-based `express` Settings

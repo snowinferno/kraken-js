@@ -26,7 +26,7 @@ test('kraken', function (t) {
         }
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken());
     });
@@ -46,7 +46,7 @@ test('kraken', function (t) {
         }
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken(__dirname));
     });
@@ -66,7 +66,7 @@ test('kraken', function (t) {
         }
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken({ basedir: __dirname }));
     });
@@ -86,7 +86,7 @@ test('kraken', function (t) {
         }
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken({ configdir: 'config' }));
     });
@@ -115,7 +115,7 @@ test('kraken', function (t) {
         };
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use('/foo', kraken(options));
     });
@@ -148,7 +148,7 @@ test('kraken', function (t) {
         };
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken(options));
     });
@@ -177,7 +177,7 @@ test('kraken', function (t) {
         };
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken(options));
     });
@@ -209,7 +209,7 @@ test('kraken', function (t) {
         };
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken(options));
 
@@ -248,7 +248,7 @@ test('kraken', function (t) {
         };
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken(options));
 
@@ -286,7 +286,7 @@ test('kraken', function (t) {
         };
 
         app = express();
-        app.on('start', start);
+        app.on('bootstrap', start);
         app.on('error', error);
         app.use(kraken(options));
 
@@ -314,7 +314,7 @@ test('kraken', function (t) {
 
         app = express();
         app.use(kraken({ basedir: __dirname }));
-        app.on('start', function () {
+        app.on('bootstrap', function () {
             app.emit('shutdown', server, 1000);
         });
 
@@ -341,7 +341,7 @@ test('kraken', function (t) {
         app = express();
         app.use(kraken({ basedir: __dirname }));
 
-        app.on('start', function () {
+        app.on('bootstrap', function () {
             app.removeAllListeners('shutdown');
 
             app.once('shutdown', function () {
@@ -372,7 +372,7 @@ test('kraken', function (t) {
         app = express();
         app.use(kraken({ basedir: path.join(__dirname, 'fixtures', 'middleware') }));
 
-        app.on('start', function () {
+        app.on('bootstrap', function () {
             app.removeAllListeners('shutdown');
 
             app.once('shutdown', function () {
@@ -421,7 +421,7 @@ test('kraken', function (t) {
             }
         }));
 
-        app.on('start', function () {
+        app.on('bootstrap', function () {
             server = http.createServer();
             stoppable(server, 1);
             server.on('request', app);
@@ -441,7 +441,7 @@ test('kraken', function (t) {
         app = express();
         app.use(kraken({ basedir: __dirname }));
 
-        app.on('start', function () {
+        app.on('bootstrap', function () {
             app.removeAllListeners('shutdown');
 
             request(app).get('/').end(function (error, response) {
