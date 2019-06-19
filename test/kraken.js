@@ -375,11 +375,17 @@ test('kraken', function (t) {
         app.on('bootstrap', function () {
             app.removeAllListeners('shutdown');
 
+            let shutdownResponded = false;
+            let slowResponded = false;
+
             app.once('shutdown', function () {
                 request(app).get('/').end(function (error, response) {
                     t.error(error);
-                    t.equals(response.statusCode, 503, 'correct status code.');
-                    server.stop(() => t.end());
+                    t.equals(response.statusCode, 503, 'correct after uncaught status code.');
+                    shutdownResponded = true;
+                    if (slowResponded) {
+                        server.stop(() => t.end());
+                    }
                 });
             });
 
@@ -387,8 +393,16 @@ test('kraken', function (t) {
             stoppable(server, 1);
             server.on('request', app);
             server.listen(0, () => {
+                request(server).get('/slow?timeout=300').end(function (error, response) {
+                    t.error(error);
+                    t.equals(response.statusCode, 200, 'correct in-flight status code.');
+                    slowResponded = true;
+                    if (shutdownResponded) {
+                        server.stop(() => t.end());
+                    }
+                });
                 request(server).get('/uncaught').end(function (error, response) {
-                    console.log(error); // TODO document
+                    console.log('uncaught', error); // TODO document
                     t.ok(error);
                 });
             });
