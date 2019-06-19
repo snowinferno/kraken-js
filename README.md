@@ -2,7 +2,7 @@
 
 # kraken.js
 
-[![Build Status](https://travis-ci.org/krakenjs/kraken-js.svg?branch=v1.0.x)](https://travis-ci.org/krakenjs/kraken-js)  
+[![Build Status](https://travis-ci.org/krakenjs/kraken-js.svg?branch=v1.0.x)](https://travis-ci.org/krakenjs/kraken-js)
 
 Kraken builds upon [express](http://expressjs.com/) and enables environment-aware, dynamic configuration, advanced middleware capabilities, security, and app lifecycle events.
 For more information and examples check out [krakenjs.com](http://krakenjs.com)
@@ -187,7 +187,7 @@ Kraken comes with common middleware already included in its `config.json` file. 
         - `"timeout"` - milliseconds (default: `30000`)
         - `"template"` - template to render (default: `null`)
         - `"shutdownHeaders"` - custom headers to write while still disconnecting.
-        - `"uncaughtException"` - custom handler - `function (error, req, res, next)` - for uncaught errors. Default behavior is to log the error and then trigger shutdown.
+        - `"uncaughtException"` - custom handler - `function (error)` - for uncaught errors. Default behavior is to log the error and then trigger shutdown.
 * `"compress"` - adds compression to server responses
   - Priority - 10
   - Enabled - `false` (disabled in all environments by default)

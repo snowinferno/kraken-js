@@ -23,11 +23,9 @@ var express = require('express');
 var bootstrap = require('./lib/bootstrap');
 var debug = require('debuglog')('kraken');
 
-
 function noop(obj, cb) {
     cb(null, obj);
 }
-
 
 module.exports = function (options) {
     var app;
@@ -66,10 +64,9 @@ module.exports = function (options) {
         promise = bootstrap(parent, options);
         promise.then(start, error);
 
-
         parent.use(function startup(req, res, next) {
             var headers = options.startupHeaders;
-            
+
             if (promise.isPending()) {
                 res.status(503);
                 if (headers) {

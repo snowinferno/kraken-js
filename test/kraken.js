@@ -2,21 +2,22 @@
 
 process.env.NODE_ENV='_krakendev';
 
-var test = require('tape');
-var path = require('path');
-var express = require('express');
-var request = require('supertest');
-var kraken = require('../');
-
+const test = require('tape');
+const path = require('path');
+const express = require('express');
+const request = require('supertest');
+const kraken = require('../');
+const stoppable = require('stoppable');
+const http = require('http');
 
 test('kraken', function (t) {
-
     t.test('startup without options', function (t) {
         var app;
 
         t.plan(1);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
         }
 
@@ -30,13 +31,13 @@ test('kraken', function (t) {
         app.use(kraken());
     });
 
-
     t.test('startup with basedir', function (t) {
         var app;
 
         t.plan(1);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
         }
 
@@ -50,13 +51,13 @@ test('kraken', function (t) {
         app.use(kraken(__dirname));
     });
 
-
     t.test('startup with options', function (t) {
         var app;
 
         t.plan(1);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
         }
 
@@ -70,12 +71,13 @@ test('kraken', function (t) {
         app.use(kraken({ basedir: __dirname }));
     });
 
-	t.test('startup with custom config directory', function (t) {
-		var app;
+    t.test('startup with custom config directory', function (t) {
+        var app;
 
         t.plan(1);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
         }
 
@@ -87,7 +89,7 @@ test('kraken', function (t) {
         app.on('start', start);
         app.on('error', error);
         app.use(kraken({ configdir: 'config' }));
-	});
+    });
 
     t.test('mount point', function (t) {
         var options, app, server;
@@ -95,6 +97,7 @@ test('kraken', function (t) {
         t.plan(2);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
             server = request(app).get('/foo/').expect(200, 'ok', function (err) {
                 t.error(err);
@@ -117,13 +120,13 @@ test('kraken', function (t) {
         app.use('/foo', kraken(options));
     });
 
-
     t.test('express route', function (t) {
         var options, app, server;
 
         t.plan(2);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
             server = request(app).get('/foo/').expect(200, 'ok', function (err) {
                 t.error(err);
@@ -157,6 +160,7 @@ test('kraken', function (t) {
         t.plan(1);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
             t.end();
         }
@@ -185,6 +189,7 @@ test('kraken', function (t) {
         t.plan(3);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
             server = request(app).get('/').expect(404, function (err) {
                 t.error(err, 'server is accepting requests');
@@ -219,6 +224,7 @@ test('kraken', function (t) {
         t.plan(3);
 
         function start() {
+            app.removeAllListeners('shutdown');
             t.pass('server started');
             server = request(app).get('/').expect(404, function (err) {
                 t.error(err, 'server is accepting requests');
@@ -336,7 +342,6 @@ test('kraken', function (t) {
         app.use(kraken({ basedir: __dirname }));
 
         app.on('start', function () {
-
             app.removeAllListeners('shutdown');
 
             app.once('shutdown', function () {
@@ -368,21 +373,24 @@ test('kraken', function (t) {
         app.use(kraken({ basedir: path.join(__dirname, 'fixtures', 'middleware') }));
 
         app.on('start', function () {
-
             app.removeAllListeners('shutdown');
 
             app.once('shutdown', function () {
                 request(app).get('/').end(function (error, response) {
                     t.error(error);
                     t.equals(response.statusCode, 503, 'correct status code.');
-                    t.end();
+                    server.stop(() => t.end());
                 });
             });
 
-            //need one request
-            request(app).get('/uncaught').end(function (error, response) {
-                t.error(error);
-                t.equals(response.statusCode, 500, 'correct status code.');
+            server = http.createServer();
+            stoppable(server, 1);
+            server.on('request', app);
+            server.listen(0, () => {
+                request(server).get('/uncaught').end(function (error, response) {
+                    console.log(error); // TODO document
+                    t.ok(error);
+                });
             });
         });
     });
@@ -398,14 +406,12 @@ test('kraken', function (t) {
             onconfig: function (config, next) {
                 config.set('middleware:shutdown:module:arguments', [
                     {
-                        "uncaughtException": function (error, req, res, next) {
-                            next(error);
-
+                        "uncaughtException": function (error) {
                             setImmediate(function () {
                                 request(app).get('/').end(function (error, response) {
                                     t.error(error);
                                     t.equals(response.statusCode, 404, 'correct status code.');
-                                    t.end();
+                                    server.stop(() => t.end());
                                 });
                             });
                         }
@@ -416,10 +422,13 @@ test('kraken', function (t) {
         }));
 
         app.on('start', function () {
-            //need one request
-            request(app).get('/uncaught').end(function (error, response) {
-                t.error(error);
-                t.equals(response.statusCode, 500, 'correct status code.');
+            server = http.createServer();
+            stoppable(server, 1);
+            server.on('request', app);
+            server.listen(0, () => {
+                request(server).get('/uncaught').end(function (error, response) {
+                    t.ok(error);
+                });
             });
         });
     });
@@ -431,7 +440,6 @@ test('kraken', function (t) {
 
         app = express();
         app.use(kraken({ basedir: __dirname }));
-
 
         app.on('start', function () {
             app.removeAllListeners('shutdown');
@@ -453,5 +461,4 @@ test('kraken', function (t) {
             });
         });
     });
-
 });

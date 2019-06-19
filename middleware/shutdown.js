@@ -17,30 +17,15 @@
  \*───────────────────────────────────────────────────────────────────────────*/
 'use strict';
 
-var domain = require('domain');
-var thing = require('core-util-is');
+const thing = require('core-util-is');
 
-var States = {
+const States = {
     CONNECTED: 0,
     DISCONNECTING: 2
 };
 
-function printDeprecation() {
-    if (/krakendev/i.test(process.env.NODE_ENV)) {
-        return;
-    }
-
-    console.warn(
-`DEPRECATION WARNING: Due to deprecation of the domain module
-in node.js, all features in kraken that depend on it have
-been deprecated as well. This includes kraken's shutdown
-middleware. This feature will continue to work in kraken 2.x
-but consider it unsupported and likely to be removed/replaced
-in future versions of kraken.`);
-}
-
 function onceThunk() {
-  var called = false;
+  let called = false;
   return function once(emitter, events, callback) {
     function call() {
       if (!called) {
@@ -54,28 +39,40 @@ function onceThunk() {
   };
 }
 
-module.exports = function (config) {
-    var template, timeout, state, app, server, once, uncaughtException;
+const timestamp = () => new Date().toISOString();
 
-    function close() {
+const log = (err, eventName) => {
+    const msg = err && err.stack || err || 'unknown';
+    console.error(timestamp(), eventName, msg);
+};
+
+module.exports = function (config = {}) {
+    const template = config.template;
+    const timeout = config.timeout || 10 * 1000;
+    const uncaughtException = thing.isFunction(config.uncaughtException) && config.uncaughtException;
+
+    let app;
+    let server;
+    let state = States.CONNECTED;
+
+    const close = () => {
         state = States.DISCONNECTING;
         app.emit('shutdown', server, timeout);
     }
 
-    config = config || {};
-    template = config.template;
-    timeout = config.timeout || 10 * 1000;
-    state = States.CONNECTED;
-    uncaughtException = thing.isFunction(config.uncaughtException) && config.uncaughtException;
-
-    once = onceThunk();
-
-    printDeprecation();
+    const handleUncaught = (type) => {
+        return (err) => {
+            if (uncaughtException) {
+                uncaughtException(err);
+                return;
+            }
+            log(err, type);
+            close();
+        }
+    }
 
     return function shutdown(req, res, next) {
-        var headers, d;
-
-        headers = config.shutdownHeaders || {};
+        const headers = config.shutdownHeaders || {};
 
         function json() {
             res.send({message: 'Server is shutting down.'});
@@ -102,31 +99,15 @@ module.exports = function (config) {
             app = req.app;
             server = req.socket.server;
 
-            once(process, ['SIGTERM', 'SIGINT'], close);
+            onceThunk()(process, ['SIGTERM', 'SIGINT'], close);
+
+            const uncaughtEvents = ['uncaughtException'];
+            const onceUncaught = onceThunk();
+            for (const evt of uncaughtEvents) {
+                onceUncaught(process, [evt], handleUncaught(evt));
+            }
         }
 
-        d = domain.create();
-
-        d.add(req);
-        d.add(res);
-
-        d.run(function () {
-            next();
-        });
-
-        d.once('error', function (error) {
-            if (uncaughtException) {
-                uncaughtException(error, req, res, next);
-                return;
-            }
-
-            console.error(new Date().toUTCString(), 'UNCAUGHT', error.message);
-            console.error(error.stack);
-
-            next(error);
-
-            close();
-        });
+        next();
     };
-
 };
