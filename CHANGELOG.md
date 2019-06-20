@@ -1,6 +1,28 @@
 # unreleased
 
-- deprecate domains
+- Removed `domain` usage
+  - Reasons for removal: https://nodejs.org/en/docs/guides/domain-postmortem/
+  - Errors thrown within middleware will now bubble up to process `uncaughtException`
+    - Were previously caught by domains and passed back to the apps error handler
+  - If `middleware:shutdown:module:arguments.uncaughtException` is not set:
+    - [semver-major] A default `uncaughtException` listener is registered which logs
+      and gracefully closes the server (previous behavior was to log and
+      non-gracefully exit with `process.exit(1)`. Due to domains, there were not as
+      many `uncaughtException`s.
+    - While the server is pending shutdown:
+      - In-flight requests will be allowed to complete until `config.timeout` is
+        reached, then will fail (no change).
+      - New incoming requests will continue to receive an http 503 (no change).
+    - [semver-major] If an `uncaughtException` is thrown from within middleware/routes,
+      that connection will timeout instead of receiving an http 500 like it used to.
+  - [semver-major] Arguments passed to the
+    `middleware:shutdown:module:arguments.uncaughtException` handler are no longer
+    `(err, req, res, next)`, but just `(err)`.
+  - [semver-major] Package: engines.node >= 8
+  - [semver-major] When running more than one kraken app within a single process, a
+    single `uncaughtException` will cause all running kraken apps to shutdown.
+- [semver-minor] Deprecate `app.on('start')` in favor of `app.on('bootstrap')`
+- Add `.editorconfig` support
 
 # Release Notes
 
